@@ -1,0 +1,25 @@
+name: Daily Tender Scan
+on:
+  schedule:
+    - cron: '0 5 * * *'  # 5 AM UTC = 7 AM SAST
+  workflow_dispatch:      # Allows you to test manually
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Tender Scraper
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python scraper.py
