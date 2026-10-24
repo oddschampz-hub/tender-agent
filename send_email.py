@@ -1,17 +1,20 @@
+import os
 import csv
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import base64
+import requests
 
 # --- CONFIGURATION ---
-EMAIL_ADDRESS = "tenders@mecsolutions.co.za"
-EMAIL_PASSWORD = "MEC@1solutionsT"
-RECIPIENT_EMAIL = "tenders@mecsolutions.co.za"
+# These are now read from environment variables
+API_KEY = os.environ.get("RESEND_API_KEY")
+RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
+FROM_EMAIL = "tenders@mecsolutions.co.za" # Verified domain in Resend
 INPUT_FILE = "C:/TenderAgent/tenders.csv"
-SMTP_SERVER = "smtp.axxess.co.za"
-SMTP_PORT = 25
 
 def send_tenders_email():
+    if not API_KEY or not RECIPIENT_EMAIL:
+        print("Error: RESEND_API_KEY or RECIPIENT_EMAIL environment variables not set.")
+        return
+
     try:
         with open(INPUT_FILE, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -28,25 +31,52 @@ def send_tenders_email():
     tenders.sort(key=lambda x: x['Priority'], reverse=True)
 
     # Construct email body
-    body = "Here are the latest low-barrier-entry tenders:\n\n"
-    for t in tenders:
-        body += f"Priority: {t['Priority']}\nProvince: {t['Province']}\nTitle: {t['Title']}\nClosing: {t['Closing Date']}\n{'-'*30}\n"
+    body = "Here are the latest low-barrier-entry tenders:
 
-    msg = MIMEMultipart()
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = RECIPIENT_EMAIL
-    msg['Subject'] = "🚀 New Low-Barrier Tenders Alert"
-    msg.attach(MIMEText(body, 'plain'))
+"
+    for t in tenders:
+        body += f"Priority: {t['Priority']}
+Province: {t['Province']}
+Title: {t['Title']}
+Closing: {t['Closing Date']}
+{'-'*30}
+"
+
+    # Read file for attachment and base64 encode it
+    try:
+        with open(INPUT_FILE, "rb") as f:
+            encoded_content = base64.b64encode(f.read()).decode('utf-8')
+    except Exception as e:
+        print(f"Error reading file for attachment: {e}")
+        return
+
+    # Prepare Resend API request
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "from": FROM_EMAIL,
+        "to": [RECIPIENT_EMAIL],
+        "subject": "🚀 New Low-Barrier Tenders Alert",
+        "text": body,
+        "attachments": [
+            {
+                "filename": "tenders.csv",
+                "content": encoded_content
+            }
+        ]
+    }
 
     try:
-        # Using Port 25 with no encryption and plain authentication
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print("Email sent successfully!")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        print("Email sent successfully via Resend API!")
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err} - {response.text}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
 
 if __name__ == "__main__":
     send_tenders_email()
