@@ -1,13 +1,12 @@
-import os
+﻿import os
 import csv
 import base64
 import requests
 
 # --- CONFIGURATION ---
-# These are now read from environment variables
 API_KEY = os.environ.get("RESEND_API_KEY")
 RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
-FROM_EMAIL = "tenders@mecsolutions.co.za" # Verified domain in Resend
+FROM_EMAIL = "onboarding@resend.dev" # Must use this for free tier!
 INPUT_FILE = "tenders.csv"
 
 def send_tenders_email():
@@ -28,19 +27,16 @@ def send_tenders_email():
         return
 
     # Sort by priority (High first)
-    tenders.sort(key=lambda x: x['Priority'], reverse=True)
+    tenders.sort(key=lambda x: x.get('Priority', 'Low'), reverse=True)
 
     # Construct email body
-    body = "Here are the latest low-barrier-entry tenders:
-
-"
+    body = "Here are the latest low-barrier-entry tenders:\n\n"
     for t in tenders:
-        body += f"Priority: {t['Priority']}
-Province: {t['Province']}
-Title: {t['Title']}
-Closing: {t['Closing Date']}
-{'-'*30}
-"
+        body += f"Priority: {t.get('Priority', 'N/A')}\n"
+        body += f"Province: {t.get('Province', 'N/A')}\n"
+        body += f"Title: {t.get('Title', 'N/A')}\n"
+        body += f"Closing: {t.get('Closing Date', 'N/A')}\n"
+        body += "-" * 30 + "\n"
 
     # Read file for attachment and base64 encode it
     try:
@@ -59,7 +55,7 @@ Closing: {t['Closing Date']}
     payload = {
         "from": FROM_EMAIL,
         "to": [RECIPIENT_EMAIL],
-        "subject": "🚀 New Low-Barrier Tenders Alert",
+        "subject": "New Low-Barrier Tenders Alert",
         "text": body,
         "attachments": [
             {
@@ -74,7 +70,7 @@ Closing: {t['Closing Date']}
         response.raise_for_status()
         print("Email sent successfully via Resend API!")
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err} - {response.text}")
+        print(f"HTTP error occurred: {http_err} - Response: {response.text}")
     except Exception as err:
         print(f"An error occurred: {err}")
 
