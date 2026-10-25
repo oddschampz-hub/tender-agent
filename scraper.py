@@ -14,7 +14,7 @@ BASE_URL = "https://www.etenders.gov.za/Home/opportunities?id=1"
 PROVINCES = ["Gauteng", "North West"]
 KEYWORDS = ['stationery', 'consumables', 'hardware', 'refreshments', 'cleaning', 'ppe', 'groceries', 'supply and delivery']
 PRIORITY_KEYWORDS = ['RFQ', 'Panel of suppliers', 'Supply and Delivery']
-OUTPUT_FILE = "C:/TenderAgent/tenders.csv"
+OUTPUT_FILE = "tenders.csv"
 
 def scrape_tenders():
     chrome_options = Options()

@@ -8,7 +8,7 @@ import requests
 API_KEY = os.environ.get("RESEND_API_KEY")
 RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
 FROM_EMAIL = "tenders@mecsolutions.co.za" # Verified domain in Resend
-INPUT_FILE = "C:/TenderAgent/tenders.csv"
+INPUT_FILE = "tenders.csv"
 
 def send_tenders_email():
     if not API_KEY or not RECIPIENT_EMAIL:
